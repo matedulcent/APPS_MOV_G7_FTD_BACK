@@ -1,18 +1,38 @@
+// src/index.ts o app.ts
 import express from "express";
-import usuariosRouter from "./routes/usuarios";
-import sucursalesRouter from "./routes/sucursales";
-import ordenesRouter from "./routes/ordenes";
+import { PrismaClient } from "@prisma/client";
 
 const app = express();
+const prisma = new PrismaClient();
+
 app.use(express.json());
 
-app.use("/api/usuarios", usuariosRouter);
-app.use("/api/sucursales", sucursalesRouter);
-app.use("/api/ordenes", ordenesRouter);
-
-app.get("/", (req, res) => res.send({ ok: true, msg: "API Express + Prisma + SQLite" }));
-
-const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
-app.listen(PORT, () => {
-    console.log(`Server listening on http://localhost:${PORT}`);
+// Endpoint de prueba: traer todos los usuarios
+app.get("/usuarios", async (req, res) => {
+    try {
+        const usuarios = await prisma.usuario.findMany();
+        res.json(usuarios);
+    } catch (e) {
+        res.status(500).json({ error: "Error al obtener usuarios" });
+    }
 });
+
+// Endpoint de prueba: traer todas las órdenes con detalles
+app.get("/ordenes", async (req, res) => {
+    const ordenes = await prisma.orden.findMany({
+        include: {
+            usuario: true,
+            sucursal: true,
+            contenidos: {
+                include: {
+                    envase: true,
+                    sabor: true,
+                },
+            },
+        },
+    });
+    res.json(ordenes);
+});
+
+const PORT = 3000;
+app.listen(PORT, () => console.log(`Servidor corriendo en http://localhost:${PORT}`));
