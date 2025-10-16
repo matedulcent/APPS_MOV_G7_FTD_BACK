@@ -1,12 +1,76 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+/*
+Modelado basado en la planilla:
+- Usuario (ID_Usuario)
+- Sucursal (ID_Sucursal)
+- Orden (ID_Pedido) -> relación Usuario - Sucursal
+- Envase (ID_Envase, Max_Cant_Sabores)
+- Sabor (ID_SABOR)
+- ContenidoPedido (relación Order - Envase - Sabor)
+*/
+
+model Usuario {
+  id        String   @id @map("ID_Usuario")
+  nombre    String?
+  mail      String?  @unique
+  contrasena String?
+  ordenes   Orden[]  @relation("usuarioOrdenes")
+}
+
+model Sucursal {
+  id         String  @id @map("ID_Sucursal")
+  nombre     String?
+  mail       String?
+  contrasena String?
+  urlImagen  String?
+  domicilio  String?
+  ordenes    Orden[] 
+}
+
+model Orden {
+  id             String            @id @map("ID_Pedido")
+  fecha          DateTime?
+  estadoTerminado Boolean          @default(false)
+  usuarioId      String
+  sucursalId     String
+
+  usuario        Usuario           @relation("usuarioOrdenes", fields: [usuarioId], references: [id], onDelete: Cascade)
+  sucursal       Sucursal          @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
+  contenidos     ContenidoPedido[]
+}
+
+model Envase {
+  id              String             @id @map("ID_Envase")
+  tipoEnvase      String
+  maxCantSabores  Int
+  contenidos      ContenidoPedido[]
+}
+
+model Sabor {
+  id         String             @id @map("ID_SABOR")
+  tipoSabor  String
+  contenidos ContenidoPedido[]
+}
+
+model ContenidoPedido {
+  id        Int     @id @default(autoincrement())
+  ordenId   String
+  envaseId  String
+  saborId   String
+
+  orden     Orden   @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  envase    Envase  @relation(fields: [envaseId], references: [id], onDelete: Cascade)
+  sabor     Sabor   @relation(fields: [saborId], references: [id], onDelete: Cascade)
+
+  @@index([ordenId])
+  @@index([envaseId])
+  @@index([saborId])
 }
