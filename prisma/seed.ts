@@ -5,26 +5,24 @@ async function main() {
     // Usuarios
     await prisma.usuario.createMany({
         data: [
-            { id: "U7845", nombre: "aaaa", mail: "a@gmail.com", contrasena: "aaaaaa" },
-            { id: "U7846", nombre: "aaaa", mail: "a@gmail.com", contrasena: "aaaaaa" },
-            { id: "U7847", nombre: "aaaa", mail: "a@gmail.com", contrasena: "aaaaaa" },
-            { id: "U7848", nombre: "aaaa", mail: "a@gmail.com", contrasena: "aaaaaa" }
-        ],
-        skipDuplicates: true
+            { id: "U7845", nombre: "aaaa", mail: "a1@gmail.com", contrasena: "aaaaaa" },
+            { id: "U7846", nombre: "aaaa", mail: "a2@gmail.com", contrasena: "aaaaaa" },
+            { id: "U7847", nombre: "aaaa", mail: "a3@gmail.com", contrasena: "aaaaaa" },
+            { id: "U7848", nombre: "aaaa", mail: "a4@gmail.com", contrasena: "aaaaaa" }
+        ]
     });
 
     // Sucursales
     await prisma.sucursal.createMany({
         data: [
-            { id: "S1234", nombre: "aaaa", mail: "a@gmail.com", contrasena: "aaaaaa", urlImagen: "asd", domicilio: "aaaaaa" },
-            { id: "S1235", nombre: "aaaa", mail: "a@gmail.com", contrasena: "aaaaaa", urlImagen: "casdf", domicilio: "aaaaaa" },
-            { id: "S1236", nombre: "aaaa", mail: "a@gmail.com", contrasena: "aaaaaa", urlImagen: "asdf", domicilio: "aaaaaa" },
-            { id: "S1237", nombre: "aaaa", mail: "a@gmail.com", contrasena: "aaaaaa", urlImagen: "asdf", domicilio: "aaaaaa" }
-        ],
-        skipDuplicates: true
+            { id: "S1234", nombre: "aaaa", mail: "s1@gmail.com", contrasena: "aaaaaa", urlImagen: "asd", domicilio: "aaaaaa" },
+            { id: "S1235", nombre: "aaaa", mail: "s2@gmail.com", contrasena: "aaaaaa", urlImagen: "casdf", domicilio: "aaaaaa" },
+            { id: "S1236", nombre: "aaaa", mail: "s3@gmail.com", contrasena: "aaaaaa", urlImagen: "asdf", domicilio: "aaaaaa" },
+            { id: "S1237", nombre: "aaaa", mail: "s4@gmail.com", contrasena: "aaaaaa", urlImagen: "asdf", domicilio: "aaaaaa" }
+        ]
     });
 
-    // Envases (ID_Envase / Tipos de Envase / Max_Cant_Sabores)
+    // Envases
     await prisma.envase.createMany({
         data: [
             { id: "B1", tipoEnvase: "Cucurucho_1", maxCantSabores: 1 },
@@ -38,11 +36,10 @@ async function main() {
             { id: "B9", tipoEnvase: "Vaso_2", maxCantSabores: 2 },
             { id: "B10", tipoEnvase: "Vaso_3", maxCantSabores: 3 },
             { id: "B11", tipoEnvase: "Vaso_4", maxCantSabores: 4 }
-        ],
-        skipDuplicates: true
+        ]
     });
 
-    // Sabores (ID_SABOR / Tipo Sabor)
+    // Sabores
     await prisma.sabor.createMany({
         data: [
             { id: "F1", tipoSabor: "frutilla" },
@@ -55,22 +52,20 @@ async function main() {
             { id: "F8", tipoSabor: "Crema" },
             { id: "F9", tipoSabor: "DDL" },
             { id: "F10", tipoSabor: "Americana" }
-        ],
-        skipDuplicates: true
+        ]
     });
 
-    // Ordenes (ejemplos en la imagen)
+    // Ordenes
     await prisma.orden.createMany({
         data: [
             { id: "P100", fecha: new Date("2025-01-01"), estadoTerminado: true, usuarioId: "U7845", sucursalId: "S1234" },
             { id: "P101", fecha: new Date("2025-01-02"), estadoTerminado: false, usuarioId: "U7846", sucursalId: "S1235" },
             { id: "P102", fecha: new Date("2025-01-02"), estadoTerminado: false, usuarioId: "U7847", sucursalId: "S1236" },
             { id: "P103", fecha: new Date("2025-01-03"), estadoTerminado: false, usuarioId: "U7848", sucursalId: "S1237" }
-        ],
-        skipDuplicates: true
+        ]
     });
 
-    // ContenidoPedido (varios registros relacionados con P100, P101, P102, P103)
+    // ContenidoPedido (manejo manual de duplicados)
     const contenidos = [
         { ordenId: "P100", envaseId: "B1", saborId: "F1" },
         { ordenId: "P100", envaseId: "B1", saborId: "F2" },
@@ -90,11 +85,10 @@ async function main() {
     ];
 
     for (const c of contenidos) {
-        // Evitar duplicados razonables por simple try/catch
         try {
             await prisma.contenidoPedido.create({ data: c });
         } catch (e) {
-            // ignore duplicates
+            // ignorar duplicados
         }
     }
 
