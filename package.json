@@ -1,0 +1,23 @@
+{
+  "name": "back",
+  "version": "1.0.0",
+  "description": "\"# APPS_MOV_G7_FTD_BACK\"",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/matedulcent/APPS_MOV_G7_FTD_BACK.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/matedulcent/APPS_MOV_G7_FTD_BACK/issues"
+  },
+  "homepage": "https://github.com/matedulcent/APPS_MOV_G7_FTD_BACK#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
