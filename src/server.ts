@@ -37,6 +37,32 @@ app.get("/ordenes", async (req, res) => {
         res.status(500).json({ error: "Error al obtener órdenes" });
     }
 });
+// Endpoint: traer todos los envases
+app.get("/envases", async (req, res) => {
+    try {
+        const envases = await prisma.envase.findMany();
+
+        // Mapear íconos según el tipo de envase
+        const envasesConIcono = envases.map(e => ({
+            id: e.id,
+            tipoEnvase: e.tipoEnvase,
+            maxCantSabores: e.maxCantSabores,
+            icon:
+                e.tipoEnvase.toLowerCase() === "cucuruchos"
+                    ? "icecream"
+                    : e.tipoEnvase.toLowerCase() === "kilos"
+                        ? "whatshot"
+                        : e.tipoEnvase.toLowerCase() === "vasos"
+                            ? "local-drink"
+                            : undefined,
+        }));
+
+        res.json(envasesConIcono);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al obtener envases" });
+    }
+});
 
 // Puerto
 const PORT = 3000;
