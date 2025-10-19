@@ -41,8 +41,10 @@ model Envase {
   id             String             @id @map("ID_Envase")
   tipoEnvase     String             @unique
   maxCantSabores Int
+  icon           String?            // nuevo campo opcional para mostrar icono
   contenidos     ContenidoPedido[]
 }
+
 
 model Sabor {
   id        String             @id @map("ID_SABOR")
