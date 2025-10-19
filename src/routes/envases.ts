@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 const router = Router();
 const prisma = new PrismaClient();
 
-// GET /envases - devuelve todos los envases
+// GET /envases - devuelve todos los envases con icon incluido
 router.get("/", async (req, res) => {
     try {
         const envases = await prisma.envase.findMany({
@@ -12,24 +12,10 @@ router.get("/", async (req, res) => {
                 id: true,
                 tipoEnvase: true,
                 maxCantSabores: true,
-                // Puedes asignar íconos según el tipo aquí
-            },
+                icon: true
+            }
         });
-
-        // Mapear íconos según el tipoEnvase (opcional)
-        const envasesConIcono = envases.map(e => ({
-            ...e,
-            icon:
-                e.tipoEnvase.toLowerCase() === "cucuruchos"
-                    ? "icecream"
-                    : e.tipoEnvase.toLowerCase() === "kilos"
-                        ? "whatshot"
-                        : e.tipoEnvase.toLowerCase() === "vasos"
-                            ? "local-drink"
-                            : undefined,
-        }));
-
-        res.json(envasesConIcono);
+        res.json(envases);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Error al obtener los envases" });

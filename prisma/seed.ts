@@ -25,17 +25,17 @@ async function main() {
     // Envases
     await prisma.envase.createMany({
         data: [
-            { id: "B1", tipoEnvase: "Cucurucho_1", maxCantSabores: 1 },
-            { id: "B2", tipoEnvase: "Cucurucho_2", maxCantSabores: 2 },
-            { id: "B3", tipoEnvase: "Cucurucho_3", maxCantSabores: 3 },
-            { id: "B4", tipoEnvase: "Cucurucho_4", maxCantSabores: 4 },
-            { id: "B5", tipoEnvase: "Kilo_0.5", maxCantSabores: 4 },
-            { id: "B6", tipoEnvase: "Kilo_0.25", maxCantSabores: 2 },
-            { id: "B7", tipoEnvase: "Kilo_1", maxCantSabores: 4 },
-            { id: "B8", tipoEnvase: "Vaso_1", maxCantSabores: 1 },
-            { id: "B9", tipoEnvase: "Vaso_2", maxCantSabores: 2 },
-            { id: "B10", tipoEnvase: "Vaso_3", maxCantSabores: 3 },
-            { id: "B11", tipoEnvase: "Vaso_4", maxCantSabores: 4 }
+            { id: "B1", tipoEnvase: "Cucurucho_1", maxCantSabores: 1, icon: "icecream" },
+            { id: "B2", tipoEnvase: "Cucurucho_2", maxCantSabores: 2, icon: "icecream" },
+            { id: "B3", tipoEnvase: "Cucurucho_3", maxCantSabores: 3, icon: "icecream" },
+            { id: "B4", tipoEnvase: "Cucurucho_4", maxCantSabores: 4, icon: "icecream" },
+            { id: "B5", tipoEnvase: "Kilo_0.5", maxCantSabores: 4, icon: "whatshot" },
+            { id: "B6", tipoEnvase: "Kilo_0.25", maxCantSabores: 2, icon: "whatshot" },
+            { id: "B7", tipoEnvase: "Kilo_1", maxCantSabores: 4, icon: "whatshot" },
+            { id: "B8", tipoEnvase: "Vaso_1", maxCantSabores: 1, icon: "local-drink" },
+            { id: "B9", tipoEnvase: "Vaso_2", maxCantSabores: 2, icon: "local-drink" },
+            { id: "B10", tipoEnvase: "Vaso_3", maxCantSabores: 3, icon: "local-drink" },
+            { id: "B11", tipoEnvase: "Vaso_4", maxCantSabores: 4, icon: "local-drink" }
         ]
     });
 
