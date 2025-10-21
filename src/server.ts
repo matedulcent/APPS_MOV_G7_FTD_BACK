@@ -1,47 +1,60 @@
 /**
  * server.ts
  * ----------
- * - CORS correcto para Expo Web (8081) y emulador.
- * - Preflight con regex (Express 5 no acepta "*").
- * - JSON parser.
- * - Health.
- * - Routers bajo /api.
+ * - CORS para Expo Web / emulador
+ * - JSON parser
+ * - Health
+ * - Routers con compatibilidad hacia atrás
+ *
+ * Compatibilidad:
+ *   - usuarios, sucursales, envases, sabores:
+ *       * Rutas nuevas con prefijo claro:   /api/usuarios, /api/sucursales, /api/envases, /api/sabores
+ *       * Rutas legacy (lo viejo):          /api/*   (p.ej. /api/login, /api/registro, etc.)
+ *   - ordenes:
+ *       * SOLO en /api/ordenes   (para el PATCH /api/ordenes/:id/terminar del botón)
  */
 import express from "express";
 import cors from "cors";
 
-import usuariosRouter from "./routes/usuarios";
+import usuariosRouter   from "./routes/usuarios";
 import sucursalesRouter from "./routes/sucursales";
-import ordenesRouter from "./routes/ordenes";
-import envasesRouter from "./routes/envases";
-import saboresRouter from "./routes/sabores";
+import ordenesRouter    from "./routes/ordenes";
+import envasesRouter    from "./routes/envases";
+import saboresRouter    from "./routes/sabores";
 
 const app = express();
 
-/** CORS (desarrollo)
- * Si querés restringir, cambiá origin: ["http://localhost:8081"]
- */
 app.use(cors({ origin: true }));
-
-// ⚠️ Express 5: NO usar "*" en .options; usar regex para preflight global.
 app.options(/.*/, cors({ origin: true }));
-
-/** JSON */
 app.use(express.json());
 
-/** Health */
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, tag: "nuevo-sin-cantidad", ts: new Date().toISOString() });
+  res.json({ ok: true, tag: "compat-apis", ts: new Date().toISOString() });
 });
 
-/** Routers montados bajo /api */
+/** ---- Nuevos prefijos claros ---- */
+app.use("/api/usuarios",   usuariosRouter);
+app.use("/api/sucursales", sucursalesRouter);
+app.use("/api/envases",    envasesRouter);
+app.use("/api/sabores",    saboresRouter);
+
+/** ---- Compatibilidad legacy (/api) para lo viejo ----
+ * OJO: NO montamos ordenes acá para no romper /api/ordenes.
+ * Esto conserva endpoints como /api/login, /api/registro, etc.
+ */
 app.use("/api", usuariosRouter);
 app.use("/api", sucursalesRouter);
-app.use("/api", ordenesRouter);
 app.use("/api", envasesRouter);
 app.use("/api", saboresRouter);
 
-/** Inicio */
+/** ---- Órdenes (solo aquí) ----
+ * Mantener EXCLUSIVO en /api/ordenes para que funcione:
+ *   - GET /api/ordenes
+ *   - GET /api/ordenes/:id
+ *   - PATCH /api/ordenes/:id/terminar
+ */
+app.use("/api/ordenes", ordenesRouter);
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);

@@ -1,114 +1,132 @@
-/**
- * routes/ordenes.ts
- * -----------------
- * Rutas de Órdenes:
- *  - POST /api/ordenes     : Crea una orden SIN 'cantidad'. Deduplica sabor por envase y valida maxCantSabores.
- *  - GET  /api/ordenes     : Lista últimas N órdenes (?take=10).
- *  - GET  /api/ordenes/:id : Devuelve una orden con usuario, sucursal y contenidos (envase+sabor).
- */
 import { Router } from "express";
-import crypto from "crypto";
 import prisma from "../prismaClient";
+import type { Prisma } from "@prisma/client";
+import { randomBytes } from "crypto";
 
 const router = Router();
 
-/** Crear orden (sin cantidad; un gusto no puede repetirse dentro del mismo envase) */
-router.post("/ordenes", async (req, res) => {
-  // Etiqueta para depurar qué handler respondió
-  res.setHeader("X-Handler", "ordenes-sin-cantidad");
-
+/** POST /api/ordenes */
+router.post("/", async (req, res) => {
   try {
-    const { usuarioId, sucursalId, items } = req.body as {
-      usuarioId?: string;
-      sucursalId?: string;
-      items?: Array<{ envaseId: string; saborId: string }>;
-    };
+    const { usuarioId, sucursalId, items } = req.body || {};
 
-    // Validación básica del payload
-    if (!usuarioId || !sucursalId || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: "Payload inválido (sin-cantidad)" });
+    if (!usuarioId || !sucursalId) {
+      return res.status(400).json({ error: "usuarioId y sucursalId son requeridos" });
     }
-    for (const it of items) {
-      if (!it?.envaseId || !it?.saborId) {
-        return res.status(400).json({ error: "Cada item requiere envaseId y saborId (sin-cantidad)" });
-      }
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "items debe ser un array no vacío" });
     }
 
-    // 1) Eliminar duplicados (no permitir el mismo sabor dentro del mismo envase)
-    const dedup = new Map<string, { envaseId: string; saborId: string }>(); // key = envaseId|saborId
-    for (const it of items) {
-      const key = `${it.envaseId}|${it.saborId}`;
-      if (!dedup.has(key)) dedup.set(key, it);
-    }
-    const dedupItems = Array.from(dedup.values());
-
-    // 2) Validar tope de sabores por envase (según Envase.maxCantSabores)
-    const porEnvase = new Map<string, number>();
-    dedupItems.forEach((it) => porEnvase.set(it.envaseId, (porEnvase.get(it.envaseId) ?? 0) + 1));
-
-    const envaseIds = Array.from(porEnvase.keys());
-    const envases = await prisma.envase.findMany({
-      where: { id: { in: envaseIds } },
-      select: { id: true, maxCantSabores: true },
-    });
-    const maxMap = new Map(envases.map((e) => [e.id, e.maxCantSabores]));
-    for (const [envaseId, cant] of porEnvase.entries()) {
-      const max = maxMap.get(envaseId);
-      if (typeof max === "number" && cant > max) {
-        return res.status(400).json({
-          error: `El envase ${envaseId} admite ${max} sabores y se enviaron ${cant}`,
-        });
-      }
-    }
-
-    // 3) Crear la orden
-    const ordenId = "P_" + crypto.randomUUID().slice(0, 8);
-    const orden = await prisma.orden.create({
-      data: { id: ordenId, fecha: new Date(), estadoTerminado: false, usuarioId, sucursalId },
+    // Normalizamos items a FKs crudos
+    const contenidosData: { envaseId: string; saborId: string }[] = items.map((it: any, idx: number) => {
+      const envaseId = it?.envaseId ?? it?.envase?.id;
+      const saborId  = it?.saborId  ?? it?.sabor?.id;
+      if (!envaseId || !saborId) throw new Error(`Item #${idx + 1}: envaseId y saborId requeridos`);
+      return { envaseId, saborId };
     });
 
-    // 4) Insertar contenidos (sin cantidad)
-    await prisma.contenidoPedido.createMany({
-      data: dedupItems.map((i) => ({
-        ordenId: orden.id,
-        envaseId: i.envaseId,
-        saborId: i.saborId,
-      })),
+    // Generamos ID (tu modelo no tiene default)
+    const newId = `P_${randomBytes(4).toString("hex")}`;
+
+    const nueva = await prisma.$transaction(async (tx) => {
+      // 1) Crear la orden con FK crudos (UncheckedCreateInput)
+      const ordenData: Prisma.OrdenUncheckedCreateInput = {
+        id: newId,
+        usuarioId,
+        sucursalId,
+        estadoTerminado: false,
+        fecha: new Date(),
+      };
+      await tx.orden.create({
+        data: ordenData,
+        select: { id: true },
+      });
+
+      // 2) Agregar contenidos vía el CAMPO DE RELACIÓN 'contenidos'
+      //    (nested create) — evita usar tx.contenido y compila siempre.
+      await tx.orden.update({
+        where: { id: newId },
+        data: {
+          contenidos: {
+            // createMany anidado puede no estar disponible en todas las versiones;
+            // con 'create' (array) funciona en todas.
+            create: contenidosData.map((c) => ({
+              // Prisma setea ordenId automáticamente por la relación
+              envaseId: c.envaseId,
+              saborId: c.saborId,
+            })),
+          },
+        },
+        select: { id: true },
+      });
+
+      // 3) Devolver la orden completa
+      return tx.orden.findUnique({
+        where: { id: newId },
+        include: {
+          contenidos: { include: { envase: true, sabor: true } },
+        },
+      });
     });
 
-    return res.status(201).json({ ok: true, ordenId: orden.id });
-  } catch (error: any) {
-    console.error("❌ Error creando orden:", error);
-    return res.status(500).json({
-      error: "Error creando la orden",
-      detail: String(error?.meta ?? error?.message ?? error),
-    });
+    res.status(201).json(nueva);
+  } catch (e: any) {
+    console.error("[POST /api/ordenes] Error:", e);
+    res.status(500).json({ error: e?.message ?? "No se pudo crear la orden" });
   }
 });
 
-/** Listar últimas N órdenes (default 10) */
-router.get("/ordenes", async (req, res) => {
-  const take = Number(req.query.take ?? 10);
-  const data = await prisma.orden.findMany({
-    orderBy: { fecha: "desc" },
-    take,
-  });
-  res.json(data);
+/** PATCH /api/ordenes/:id/terminar */
+router.patch("/:id/terminar", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existente = await prisma.orden.findUnique({ where: { id } });
+    if (!existente) return res.status(404).json({ error: "Orden no encontrada" });
+
+    if (existente.estadoTerminado) {
+      return res.json({ ok: true, id, estadoTerminado: true });
+    }
+
+    const actualizada = await prisma.orden.update({
+      where: { id },
+      data: { estadoTerminado: true },
+      select: { id: true, estadoTerminado: true },
+    });
+
+    res.json({ ok: true, ...actualizada });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message ?? "No se pudo terminar la orden" });
+  }
 });
 
-/** Obtener una orden por id con relaciones */
-router.get("/ordenes/:id", async (req, res) => {
-  const { id } = req.params;
-  const data = await prisma.orden.findUnique({
-    where: { id },
-    include: {
-      usuario: true,
-      sucursal: true,
-      contenidos: { include: { envase: true, sabor: true } },
-    },
-  });
-  if (!data) return res.status(404).json({ error: "Orden no encontrada" });
-  res.json(data);
+/** GET /api/ordenes */
+router.get("/", async (req, res) => {
+  try {
+    const take = Number(req.query.take ?? 50);
+    const ordenes = await prisma.orden.findMany({
+      take,
+      orderBy: [{ fecha: "desc" }, { id: "desc" }],
+      select: { id: true, fecha: true, estadoTerminado: true, sucursalId: true, usuarioId: true },
+    });
+    res.json(ordenes);
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message ?? "Error listando órdenes" });
+  }
+});
+
+/** GET /api/ordenes/:id */
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const orden = await prisma.orden.findUnique({
+      where: { id },
+      include: { contenidos: { include: { envase: true, sabor: true } } },
+    });
+    if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
+    res.json(orden);
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message ?? "Error leyendo orden" });
+  }
 });
 
 export default router;
