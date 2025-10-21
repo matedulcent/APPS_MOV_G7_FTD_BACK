@@ -11,6 +11,56 @@ import prisma from "../prismaClient";
 const router = Router();
 
 /** GET /api/usuarios */
+
+// === REGISTRO DE USUARIO (NUEVO) ===
+// POST /api/usuarios/registro
+// Body esperado desde el front: { nombre, email, password }
+// Mapea a tu modelo: { id: string, nombre?: string, mail?: string, contrasena?: string }
+router.post("/registro", async (req, res) => {
+  try {
+    const { nombre, email, password } = req.body as {
+      nombre?: string;
+      email?: string;
+      password?: string;
+    };
+
+    if (!email || !password) {
+      return res.status(400).send("Faltan campos: email y password son requeridos");
+    }
+
+    // mail es único en tu schema
+    const ya = await prisma.usuario.findUnique({
+      where: { mail: email },
+      select: { id: true },
+    });
+    if (ya) {
+      return res.status(409).send("El email ya está registrado");
+    }
+
+    const id = crypto.randomUUID(); // tu id es String
+    // TODO: si querés, acá podés hashear con bcrypt
+
+    const nuevo = await prisma.usuario.create({
+      data: {
+        id,
+        nombre: nombre ?? null,
+        mail: email,
+        contrasena: password,
+      },
+      select: { id: true, nombre: true, mail: true }, // no retornamos contrasena
+    });
+
+    return res.status(201).json(nuevo);
+  } catch (e: any) {
+    console.error("Error al registrar usuario:", e);
+    if (e?.code === "P2002") {
+      return res.status(409).send("El email ya está registrado");
+    }
+    return res.status(500).send("Error interno");
+  }
+});
+
+
 router.get("/usuarios", async (_req, res) => {
   try {
     const usuarios = await prisma.usuario.findMany();
