@@ -8,11 +8,11 @@ datasource db {
 }
 
 model Usuario {
-  id         String   @id @map("ID_Usuario")
+  id         String  @id @map("ID_Usuario")
   nombre     String?
-  mail       String?  @unique
+  mail       String? @unique
   contrasena String?
-  ordenes    Orden[]  @relation("usuarioOrdenes")
+  ordenes    Orden[] @relation("usuarioOrdenes")
 }
 
 model Sucursal {
@@ -23,42 +23,52 @@ model Sucursal {
   urlImagen  String?
   domicilio  String?
   ordenes    Orden[]
+
+  // NUEVO: ofertas M:N
+  envasesOfrecidos Envase[]
+  saboresOfrecidos Sabor[]
 }
 
 model Orden {
-  id              String            @id @map("ID_Pedido")
+  id              String    @id @map("ID_Pedido")
   fecha           DateTime?
-  estadoTerminado Boolean           @default(false)
+  estadoTerminado Boolean   @default(false)
   usuarioId       String
   sucursalId      String
 
-  usuario         Usuario           @relation("usuarioOrdenes", fields: [usuarioId], references: [id], onDelete: Cascade)
-  sucursal        Sucursal          @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
-  contenidos      ContenidoPedido[]
-}
-
-model Envase {
-  id             String             @id @map("ID_Envase")
-  tipoEnvase     String             @unique
-  maxCantSabores Int
-  contenidos     ContenidoPedido[]
-}
-
-model Sabor {
-  id        String             @id @map("ID_SABOR")
-  tipoSabor String             @unique
+  usuario    Usuario           @relation("usuarioOrdenes", fields: [usuarioId], references: [id], onDelete: Cascade)
+  sucursal   Sucursal          @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
   contenidos ContenidoPedido[]
 }
 
+model Envase {
+  id             String            @id @map("ID_Envase")
+  tipoEnvase     String            @unique
+  maxCantSabores Int
+  contenidos     ContenidoPedido[]
+
+  // backref M:N con sucursal
+  sucursales Sucursal[]
+}
+
+model Sabor {
+  id         String            @id @map("ID_SABOR")
+  tipoSabor  String            @unique
+  contenidos ContenidoPedido[]
+
+  // backref M:N con sucursal
+  sucursales Sucursal[]
+}
+
 model ContenidoPedido {
-  id       Int     @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   ordenId  String
   envaseId String
   saborId  String
 
-  orden    Orden   @relation(fields: [ordenId], references: [id], onDelete: Cascade)
-  envase   Envase  @relation(fields: [envaseId], references: [id], onDelete: Cascade)
-  sabor    Sabor   @relation(fields: [saborId], references: [id], onDelete: Cascade)
+  orden  Orden  @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  envase Envase @relation(fields: [envaseId], references: [id], onDelete: Cascade)
+  sabor  Sabor  @relation(fields: [saborId], references: [id], onDelete: Cascade)
 
   @@index([ordenId])
   @@index([envaseId])

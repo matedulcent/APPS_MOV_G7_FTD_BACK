@@ -7,24 +7,18 @@
     "dev": "nodemon src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed": "ts-node prisma/seed.ts"
+    "seed:manual": "ts-node --transpile-only prisma/seed.ts"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/matedulcent/APPS_MOV_G7_FTD_BACK.git"
+  "prisma": {
+    "seed": "ts-node --transpile-only prisma/seed.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/matedulcent/APPS_MOV_G7_FTD_BACK/issues"
-  },
-  "homepage": "https://github.com/matedulcent/APPS_MOV_G7_FTD_BACK#readme",
   "dependencies": {
     "@prisma/client": "^6.17.1",
+    "cors": "^2.8.5",
     "express": "^5.1.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.7.2",
     "nodemon": "^3.1.10",
