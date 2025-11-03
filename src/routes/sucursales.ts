@@ -106,9 +106,10 @@ router.post("/registro", async (req, res) => {
     return res.status(500).send("Error interno");
   }
 });
+
 // ─── LISTAR TODAS LAS SUCURSALES ──────────────────────────────────────────────
 // GET /api/sucursales
-router.get("/", async (req, res) => {
+router.get("/", async (_req, res) => {
   try {
     const sucursales = await prisma.sucursal.findMany({
       select: {
@@ -125,8 +126,24 @@ router.get("/", async (req, res) => {
   }
 });
 
+// ─── OBTENER UNA SUCURSAL (para el título de la heladería) ────────────────────
+// GET /api/sucursales/:id
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const suc = await prisma.sucursal.findUnique({
+      where: { id },
+      select: { id: true, nombre: true, domicilio: true, urlImagen: true },
+    });
+    if (!suc) return res.status(404).json({ error: "Sucursal no encontrada" });
+    res.json(suc);
+  } catch (e) {
+    console.error("[GET /api/sucursales/:id]", e);
+    res.status(500).json({ error: "Error al obtener sucursal" });
+  }
+});
 
-router.get("/sucursales/:id/oferta", async (req, res) => {
+router.get("/:id/oferta", async (req, res) => {
   try {
     const { id } = req.params;
     const sucursal = await prisma.sucursal.findUnique({
@@ -152,7 +169,7 @@ router.get("/sucursales/:id/oferta", async (req, res) => {
  * Reemplaza la oferta completa de la sucursal
  * body: { envaseIds: string[], saborIds: string[] }
  */
-router.put("/sucursales/:id/oferta", async (req, res) => {
+router.put("/:id/oferta", async (req, res) => {
   try {
     const { id } = req.params;
     const { envaseIds = [], saborIds = [] } = req.body ?? {};
