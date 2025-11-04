@@ -1,6 +1,6 @@
 import { Router } from "express";
 import prisma from "../prismaClient";
-import crypto from "crypto";
+import { generarIdSabor } from "./utils";
 
 const router = Router();
 
@@ -26,7 +26,7 @@ async function handlePostSabores(req: any, res: any) {
     }
     const tipoSabor = nombreRaw.trim();
 
-    // Buscar coincidencia exacta ignorando mayúsculas/minúsculas
+    // Idempotente: coincidencia exacta ignorando mayúsc/minúsc
     const candidato = await prisma.sabor.findFirst({
       where: { tipoSabor: { equals: tipoSabor } },
     });
@@ -35,12 +35,11 @@ async function handlePostSabores(req: any, res: any) {
       typeof candidato.tipoSabor === "string" &&
       candidato.tipoSabor.toLowerCase() === tipoSabor.toLowerCase()
     ) {
-      // idempotente: ya existe
       return res.status(200).json(candidato);
     }
 
-    // Generar ID (tu model Sabor necesita id String @id sin default)
-    const id = "S_" + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+    // ID con prefijo 'f' + 5 dígitos (centralizado)
+    const id = generarIdSabor();
 
     const creado = await prisma.sabor.create({
       data: {
@@ -51,7 +50,6 @@ async function handlePostSabores(req: any, res: any) {
 
     return res.status(201).json(creado);
   } catch (e: any) {
-    // Prisma unique constraint
     if (e?.code === "P2002") {
       try {
         const existente = await prisma.sabor.findFirst({
@@ -67,12 +65,10 @@ async function handlePostSabores(req: any, res: any) {
 }
 
 /* ─────────── Rutas NUEVAS (montadas bajo /api/sabores) ─────────── */
-// GET /api/sabores  |  POST /api/sabores
 router.get("/", handleGetSabores);
 router.post("/", handlePostSabores);
 
 /* ─────────── Rutas LEGACY (montadas bajo /api) ─────────── */
-// GET /api/sabores  |  POST /api/sabores  (compat)
 router.get("/sabores", handleGetSabores);
 router.post("/sabores", handlePostSabores);
 

@@ -1,8 +1,7 @@
-// routes/ordenes.ts
 import { Router } from "express";
 import prisma from "../prismaClient";
 import type { Prisma } from "@prisma/client";
-import { randomBytes } from "crypto";
+import { generarIdOrden } from "./utils";
 
 const router = Router();
 
@@ -26,11 +25,8 @@ router.post("/", async (req, res) => {
       return { envaseId, saborId };
     });
 
-    function generarIdUsuario() {
-      const random = Math.floor(10000 + Math.random() * 90000);
-      return `O${random}`;
-    }
-    const newId = generarIdUsuario();
+    // ID con prefijo 'O' + 5 dígitos (centralizado)
+    const newId = generarIdOrden();
 
     const nueva = await prisma.$transaction(async (tx) => {
       const ordenData: Prisma.OrdenUncheckedCreateInput = {
@@ -105,7 +101,7 @@ router.get("/", async (req, res) => {
       select: { id: true, fecha: true, estadoTerminado: true, sucursalId: true, usuarioId: true },
     });
 
-    console.log("[GET /api/ordenes] filtro sucursalId:", sucursalId || "(sin filtro)", "=>", ordenes.length, "resultados");
+    console.log("[GET /api/ordenes] filtro sucursalId:", sucursalId || "(sin filtro)", "=>", ordenes.length);
     res.json(ordenes);
   } catch (e: any) {
     console.error("[GET /api/ordenes] ERROR:", e);
@@ -113,7 +109,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-/** GET /api/ordenes/sucursal/:sucursalId (ruta explícita) */
+/** GET /api/ordenes/sucursal/:sucursalId */
 router.get("/sucursal/:sucursalId", async (req, res) => {
   try {
     const { sucursalId } = req.params;
@@ -140,7 +136,7 @@ router.get("/:id", async (req, res) => {
     const { id } = req.params;
     const orden = await prisma.orden.findUnique({
       where: { id },
-      include: { contenidos: { include: { envase: true, sabor: true } } }, // 👈 IMPORTANTE
+      include: { contenidos: { include: { envase: true, sabor: true } } },
     });
     console.log("[GET /api/ordenes/:id] id:", id, "existe:", !!orden);
     if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
@@ -150,6 +146,5 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ error: e?.message ?? "Error leyendo orden" });
   }
 });
-
 
 export default router;

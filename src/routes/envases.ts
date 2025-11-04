@@ -1,6 +1,6 @@
 import { Router } from "express";
 import prisma from "../prismaClient";
-import crypto from "crypto";
+import { generarIdEnvase } from "./utils";
 
 const router = Router();
 
@@ -33,7 +33,7 @@ async function handlePostEnvases(req: any, res: any) {
       return res.status(400).json({ error: "maxCantSabores debe ser un número > 0" });
     }
 
-    // Duplicado (comparación exacta “case-insensitive” sin usar mode:)
+    // Duplicado (comparación case-insensitive manual)
     const candidato = await prisma.envase.findFirst({
       where: { tipoEnvase: { equals: tipoEnvase } },
     });
@@ -42,12 +42,11 @@ async function handlePostEnvases(req: any, res: any) {
       typeof candidato.tipoEnvase === "string" &&
       candidato.tipoEnvase.toLowerCase() === tipoEnvase.toLowerCase()
     ) {
-      // idempotente: ya existe → devolvemos el existente
       return res.status(200).json(candidato);
     }
 
-    // Tu modelo parece exigir id String @id sin default → generamos uno
-    const id = "E_" + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+    // ID con prefijo 'p' + 5 dígitos (centralizado)
+    const id = generarIdEnvase();
 
     const creado = await prisma.envase.create({
       data: {
@@ -59,7 +58,6 @@ async function handlePostEnvases(req: any, res: any) {
 
     return res.status(201).json(creado);
   } catch (e: any) {
-    // Unique constraint de Prisma (si tipoEnvase es @unique)
     if (e?.code === "P2002") {
       try {
         const existente = await prisma.envase.findFirst({
@@ -75,12 +73,10 @@ async function handlePostEnvases(req: any, res: any) {
 }
 
 /* ─────────── Rutas NUEVAS (montadas bajo /api/envases) ─────────── */
-// Quedan en: GET /api/envases  |  POST /api/envases
 router.get("/", handleGetEnvases);
 router.post("/", handlePostEnvases);
 
 /* ─────────── Rutas LEGACY (montadas bajo /api) ─────────── */
-// Quedan en: GET /api/envases  |  POST /api/envases  (compat)
 router.get("/envases", handleGetEnvases);
 router.post("/envases", handlePostEnvases);
 

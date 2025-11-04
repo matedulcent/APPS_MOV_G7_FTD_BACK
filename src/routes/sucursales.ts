@@ -1,14 +1,10 @@
 import { Router } from "express";
 import prisma from "../prismaClient";
-import crypto from "crypto";
+import { generarIdSucursal } from "./utils";
 
 const router = Router();
 
-/** GET /api/sucursales/:id/oferta
- * Devuelve envases + sabores ofrecidos por esa sucursal
- */
-
-// ─── helpers de validación ─────────────────────────────────────────────────────
+// helpers validación locales
 const isEmail = (s?: string) =>
   typeof s === "string" &&
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
@@ -24,8 +20,6 @@ const isHttpUrl = (s?: string) => {
 };
 
 // ─── LOGIN VENDEDOR ────────────────────────────────────────────────────────────
-// POST /api/sucursales/login
-// Body: { email, password }
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -36,7 +30,6 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Email y password requeridos" });
     }
 
-    // Buscar sucursal por mail
     const suc = await prisma.sucursal.findFirst({
       where: { mail },
       select: { id: true, nombre: true, mail: true, contrasena: true },
@@ -46,13 +39,12 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    // Respuesta que espera el front
     return res.json({
-      id: suc.id,                  // userId para Redux
+      id: suc.id,
       nombre: suc.nombre || "",
       email: suc.mail || mail,
       role: "vendedor",
-      sucursalId: suc.id,          // necesario para navegar a Pedidos_Sucursal
+      sucursalId: suc.id,
     });
   } catch (e: any) {
     console.error("[POST /api/sucursales/login] ERROR:", e);
@@ -60,20 +52,10 @@ router.post("/login", async (req, res) => {
   }
 });
 
-
 // ─── REGISTRO DE SUCURSAL ─────────────────────────────────────────────────────
-// POST /api/sucursales/registro
-// Body desde el front:
-//   { nombre?, email, password, domicilio?, urlImagen? }
 router.post("/registro", async (req, res) => {
   try {
-    const {
-      nombre,
-      email,
-      password,
-      domicilio,
-      urlImagen,
-    } = req.body as {
+    const { nombre, email, password, domicilio, urlImagen } = req.body as {
       nombre?: string;
       email?: string;
       password?: string;
@@ -81,7 +63,6 @@ router.post("/registro", async (req, res) => {
       urlImagen?: string;
     };
 
-    // Requeridos
     if (!email || !password) {
       return res.status(400).send("Faltan campos: email y password son requeridos");
     }
@@ -91,8 +72,6 @@ router.post("/registro", async (req, res) => {
     if (password.length < 6) {
       return res.status(400).send("La contraseña debe tener al menos 6 caracteres");
     }
-
-    // Opcionales con reglas mínimas
     if (nombre && nombre.trim().length < 2) {
       return res.status(400).send("El nombre debe tener al menos 2 caracteres");
     }
@@ -103,7 +82,6 @@ router.post("/registro", async (req, res) => {
       return res.status(400).send("El domicilio debe tener al menos 3 caracteres");
     }
 
-    // mail único
     const existente = await prisma.sucursal.findUnique({
       where: { mail: email },
       select: { id: true },
@@ -112,13 +90,9 @@ router.post("/registro", async (req, res) => {
       return res.status(409).send("El email ya está registrado");
     }
 
-    function generarIdUsuario() {
-      const random = Math.floor(10000 + Math.random() * 90000);
-      return `S${random}`;
-    }
-    const id = generarIdUsuario();
+    // ID con prefijo 'S' + 5 dígitos (centralizado)
+    const id = generarIdSucursal();
 
-    // TODO (recomendado): hashear password con bcrypt
     const creada = await prisma.sucursal.create({
       data: {
         id,
@@ -128,37 +102,24 @@ router.post("/registro", async (req, res) => {
         domicilio: domicilio ?? null,
         urlImagen: urlImagen ?? null,
       },
-      select: {
-        id: true,
-        nombre: true,
-        mail: true,
-        domicilio: true,
-        urlImagen: true,
-      },
+      select: { id: true, nombre: true, mail: true, domicilio: true, urlImagen: true },
     });
 
     return res.status(201).json(creada);
   } catch (e: any) {
     console.error("Error al registrar sucursal:", e);
     if (e?.code === "P2002") {
-      // Unique constraint (mail)
       return res.status(409).send("El email ya está registrado");
     }
     return res.status(500).send("Error interno");
   }
 });
 
-// ─── LISTAR TODAS LAS SUCURSALES ──────────────────────────────────────────────
-// GET /api/sucursales
+// ─── LISTAR TODAS ─────────────────────────────────────────────────────────────
 router.get("/", async (_req, res) => {
   try {
     const sucursales = await prisma.sucursal.findMany({
-      select: {
-        id: true,
-        nombre: true,
-        domicilio: true,
-        urlImagen: true,
-      },
+      select: { id: true, nombre: true, domicilio: true, urlImagen: true },
     });
     res.json(sucursales);
   } catch (e) {
@@ -167,8 +128,7 @@ router.get("/", async (_req, res) => {
   }
 });
 
-// ─── OBTENER UNA SUCURSAL (para el título de la heladería) ────────────────────
-// GET /api/sucursales/:id
+// ─── OBTENER UNA ──────────────────────────────────────────────────────────────
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -189,10 +149,7 @@ router.get("/:id/oferta", async (req, res) => {
     const { id } = req.params;
     const sucursal = await prisma.sucursal.findUnique({
       where: { id },
-      include: {
-        envasesOfrecidos: true,
-        saboresOfrecidos: true,
-      },
+      include: { envasesOfrecidos: true, saboresOfrecidos: true },
     });
     if (!sucursal) return res.status(404).json({ error: "Sucursal no encontrada" });
 
@@ -206,10 +163,6 @@ router.get("/:id/oferta", async (req, res) => {
   }
 });
 
-/** PUT /api/sucursales/:id/oferta
- * Reemplaza la oferta completa de la sucursal
- * body: { envaseIds: string[], saborIds: string[] }
- */
 router.put("/:id/oferta", async (req, res) => {
   try {
     const { id } = req.params;
@@ -221,10 +174,7 @@ router.put("/:id/oferta", async (req, res) => {
         envasesOfrecidos: { set: (envaseIds as string[]).map((eid) => ({ id: eid })) },
         saboresOfrecidos: { set: (saborIds as string[]).map((sid) => ({ id: sid })) },
       },
-      include: {
-        envasesOfrecidos: true,
-        saboresOfrecidos: true,
-      },
+      include: { envasesOfrecidos: true, saboresOfrecidos: true },
     });
 
     res.json({
