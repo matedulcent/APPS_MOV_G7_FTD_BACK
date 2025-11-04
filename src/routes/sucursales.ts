@@ -23,6 +23,44 @@ const isHttpUrl = (s?: string) => {
   }
 };
 
+// ─── LOGIN VENDEDOR ────────────────────────────────────────────────────────────
+// POST /api/sucursales/login
+// Body: { email, password }
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const mail = (email || "").toString().trim().toLowerCase();
+    const pass = (password || "").toString();
+
+    if (!mail || !pass) {
+      return res.status(400).json({ error: "Email y password requeridos" });
+    }
+
+    // Buscar sucursal por mail
+    const suc = await prisma.sucursal.findFirst({
+      where: { mail },
+      select: { id: true, nombre: true, mail: true, contrasena: true },
+    });
+
+    if (!suc || (suc.contrasena || "") !== pass) {
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
+
+    // Respuesta que espera el front
+    return res.json({
+      id: suc.id,                  // userId para Redux
+      nombre: suc.nombre || "",
+      email: suc.mail || mail,
+      role: "vendedor",
+      sucursalId: suc.id,          // necesario para navegar a Pedidos_Sucursal
+    });
+  } catch (e: any) {
+    console.error("[POST /api/sucursales/login] ERROR:", e);
+    res.status(500).json({ error: e?.message ?? "Error en login vendedor" });
+  }
+});
+
+
 // ─── REGISTRO DE SUCURSAL ─────────────────────────────────────────────────────
 // POST /api/sucursales/registro
 // Body desde el front:
@@ -74,8 +112,11 @@ router.post("/registro", async (req, res) => {
       return res.status(409).send("El email ya está registrado");
     }
 
-    // id String
-    const id = crypto.randomUUID();
+    function generarIdUsuario() {
+      const random = Math.floor(10000 + Math.random() * 90000);
+      return `S${random}`;
+    }
+    const id = generarIdUsuario();
 
     // TODO (recomendado): hashear password con bcrypt
     const creada = await prisma.sucursal.create({
@@ -106,9 +147,10 @@ router.post("/registro", async (req, res) => {
     return res.status(500).send("Error interno");
   }
 });
+
 // ─── LISTAR TODAS LAS SUCURSALES ──────────────────────────────────────────────
 // GET /api/sucursales
-router.get("/", async (req, res) => {
+router.get("/", async (_req, res) => {
   try {
     const sucursales = await prisma.sucursal.findMany({
       select: {
@@ -125,8 +167,24 @@ router.get("/", async (req, res) => {
   }
 });
 
+// ─── OBTENER UNA SUCURSAL (para el título de la heladería) ────────────────────
+// GET /api/sucursales/:id
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const suc = await prisma.sucursal.findUnique({
+      where: { id },
+      select: { id: true, nombre: true, domicilio: true, urlImagen: true },
+    });
+    if (!suc) return res.status(404).json({ error: "Sucursal no encontrada" });
+    res.json(suc);
+  } catch (e) {
+    console.error("[GET /api/sucursales/:id]", e);
+    res.status(500).json({ error: "Error al obtener sucursal" });
+  }
+});
 
-router.get("/sucursales/:id/oferta", async (req, res) => {
+router.get("/:id/oferta", async (req, res) => {
   try {
     const { id } = req.params;
     const sucursal = await prisma.sucursal.findUnique({
@@ -152,7 +210,7 @@ router.get("/sucursales/:id/oferta", async (req, res) => {
  * Reemplaza la oferta completa de la sucursal
  * body: { envaseIds: string[], saborIds: string[] }
  */
-router.put("/sucursales/:id/oferta", async (req, res) => {
+router.put("/:id/oferta", async (req, res) => {
   try {
     const { id } = req.params;
     const { envaseIds = [], saborIds = [] } = req.body ?? {};
