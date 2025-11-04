@@ -37,8 +37,12 @@ router.post("/registro", async (req, res) => {
       return res.status(409).send("El email ya está registrado");
     }
 
-    const id = crypto.randomUUID(); // tu id es String
-    // TODO: si querés, acá podés hashear con bcrypt
+    function generarIdUsuario() {
+      const random = Math.floor(10000 + Math.random() * 90000);
+      return `U${random}`;
+    }
+    const id = generarIdUsuario();
+
 
     const nuevo = await prisma.usuario.create({
       data: {

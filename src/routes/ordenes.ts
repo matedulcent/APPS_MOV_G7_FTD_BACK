@@ -26,7 +26,11 @@ router.post("/", async (req, res) => {
       return { envaseId, saborId };
     });
 
-    const newId = `P_${randomBytes(4).toString("hex")}`;
+    function generarIdUsuario() {
+      const random = Math.floor(10000 + Math.random() * 90000);
+      return `O${random}`;
+    }
+    const newId = generarIdUsuario();
 
     const nueva = await prisma.$transaction(async (tx) => {
       const ordenData: Prisma.OrdenUncheckedCreateInput = {

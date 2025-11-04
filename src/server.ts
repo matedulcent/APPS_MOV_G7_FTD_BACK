@@ -38,6 +38,8 @@ app.use("/api/usuarios",   usuariosRouter);
 app.use("/api/sucursales", sucursalesRouter);
 app.use("/api/envases",    envasesRouter);
 app.use("/api/sabores",    saboresRouter);
+app.use("/api2/ordenes", ordenesRouter); // alias nuevo sin colisiones
+
 
 /** ---- Compatibilidad legacy (/api) para lo viejo ----
  * OJO: NO montamos ordenes acá para no romper /api/ordenes.

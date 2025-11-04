@@ -23,6 +23,44 @@ const isHttpUrl = (s?: string) => {
   }
 };
 
+// ─── LOGIN VENDEDOR ────────────────────────────────────────────────────────────
+// POST /api/sucursales/login
+// Body: { email, password }
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const mail = (email || "").toString().trim().toLowerCase();
+    const pass = (password || "").toString();
+
+    if (!mail || !pass) {
+      return res.status(400).json({ error: "Email y password requeridos" });
+    }
+
+    // Buscar sucursal por mail
+    const suc = await prisma.sucursal.findFirst({
+      where: { mail },
+      select: { id: true, nombre: true, mail: true, contrasena: true },
+    });
+
+    if (!suc || (suc.contrasena || "") !== pass) {
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
+
+    // Respuesta que espera el front
+    return res.json({
+      id: suc.id,                  // userId para Redux
+      nombre: suc.nombre || "",
+      email: suc.mail || mail,
+      role: "vendedor",
+      sucursalId: suc.id,          // necesario para navegar a Pedidos_Sucursal
+    });
+  } catch (e: any) {
+    console.error("[POST /api/sucursales/login] ERROR:", e);
+    res.status(500).json({ error: e?.message ?? "Error en login vendedor" });
+  }
+});
+
+
 // ─── REGISTRO DE SUCURSAL ─────────────────────────────────────────────────────
 // POST /api/sucursales/registro
 // Body desde el front:
@@ -74,8 +112,11 @@ router.post("/registro", async (req, res) => {
       return res.status(409).send("El email ya está registrado");
     }
 
-    // id String
-    const id = crypto.randomUUID();
+    function generarIdUsuario() {
+      const random = Math.floor(10000 + Math.random() * 90000);
+      return `S${random}`;
+    }
+    const id = generarIdUsuario();
 
     // TODO (recomendado): hashear password con bcrypt
     const creada = await prisma.sucursal.create({
