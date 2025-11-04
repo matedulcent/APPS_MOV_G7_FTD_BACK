@@ -134,13 +134,13 @@ router.get("/sucursal/:sucursalId", async (req, res) => {
   }
 });
 
-/** GET /api/ordenes/:id */
+// GET /api/ordenes/:id
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const orden = await prisma.orden.findUnique({
       where: { id },
-      include: { contenidos: { include: { envase: true, sabor: true } } },
+      include: { contenidos: { include: { envase: true, sabor: true } } }, // 👈 IMPORTANTE
     });
     console.log("[GET /api/ordenes/:id] id:", id, "existe:", !!orden);
     if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
@@ -150,5 +150,6 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ error: e?.message ?? "Error leyendo orden" });
   }
 });
+
 
 export default router;
