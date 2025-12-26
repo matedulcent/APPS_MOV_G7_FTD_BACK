@@ -6,16 +6,13 @@
  */
 import { Router } from "express";
 import prisma from "../prismaClient";
+import { generarIdUsuario } from "./utils";
 // import bcrypt from "bcrypt"; // (si más adelante querés hashear)
 
 const router = Router();
 
-/** GET /api/usuarios */
-
 // === REGISTRO DE USUARIO (NUEVO) ===
 // POST /api/usuarios/registro
-// Body esperado desde el front: { nombre, email, password }
-// Mapea a tu modelo: { id: string, nombre?: string, mail?: string, contrasena?: string }
 router.post("/registro", async (req, res) => {
   try {
     const { nombre, email, password } = req.body as {
@@ -28,7 +25,6 @@ router.post("/registro", async (req, res) => {
       return res.status(400).send("Faltan campos: email y password son requeridos");
     }
 
-    // mail es único en tu schema
     const ya = await prisma.usuario.findUnique({
       where: { mail: email },
       select: { id: true },
@@ -37,8 +33,7 @@ router.post("/registro", async (req, res) => {
       return res.status(409).send("El email ya está registrado");
     }
 
-    const id = crypto.randomUUID(); // tu id es String
-    // TODO: si querés, acá podés hashear con bcrypt
+    const id = generarIdUsuario();
 
     const nuevo = await prisma.usuario.create({
       data: {
@@ -47,7 +42,7 @@ router.post("/registro", async (req, res) => {
         mail: email,
         contrasena: password,
       },
-      select: { id: true, nombre: true, mail: true }, // no retornamos contrasena
+      select: { id: true, nombre: true, mail: true },
     });
 
     return res.status(201).json(nuevo);
@@ -59,7 +54,6 @@ router.post("/registro", async (req, res) => {
     return res.status(500).send("Error interno");
   }
 });
-
 
 router.get("/usuarios", async (_req, res) => {
   try {
@@ -80,7 +74,6 @@ async function loginHandler(req: any, res: any) {
       role?: "cliente" | "vendedor";
     };
 
-    // Validación básica
     if (!email || !password) {
       return res.status(400).json({ ok: false, error: "Faltan email y/o contraseña" });
     }
@@ -90,39 +83,30 @@ async function loginHandler(req: any, res: any) {
 
     console.log("📩 [LOGIN] datos recibidos:", { emailNorm, role });
 
-    // 1) Buscar en Usuario
     const usuario = await prisma.usuario.findFirst({
       where: { mail: { in: [emailNorm, email] } },
       select: { id: true, nombre: true, mail: true, contrasena: true },
     });
-    console.log("🧍 [LOGIN] match Usuario:", usuario);
 
-    // 2) Si no hay usuario, buscar en Sucursal (vendedor)
     const sucursal = usuario
       ? null
       : await prisma.sucursal.findFirst({
           where: { mail: { in: [emailNorm, email] } },
           select: { id: true, nombre: true, mail: true, contrasena: true },
         });
-    console.log("🏪 [LOGIN] match Sucursal:", sucursal);
 
     if (!usuario && !sucursal) {
-      console.log("❌ [LOGIN] no existe mail en Usuario ni en Sucursal");
       return res.status(401).json({ ok: false, error: "Email o contraseña incorrectos" });
     }
 
-    // 3) Comparación simple (sin hash, como pediste)
     const okPw =
       (usuario && usuario.contrasena === passInput) ||
       (sucursal && sucursal.contrasena === passInput);
-
-    console.log("🔑 [LOGIN] contraseña coincide:", okPw);
 
     if (!okPw) {
       return res.status(401).json({ ok: false, error: "Email o contraseña incorrectos" });
     }
 
-    // 4) Armar respuesta coherente
     const resp = usuario
       ? {
           ok: true,
@@ -139,7 +123,6 @@ async function loginHandler(req: any, res: any) {
           email: sucursal!.mail,
         };
 
-    console.log("✅ [LOGIN] respuesta:", resp);
     return res.json(resp);
   } catch (e) {
     console.error("[LOGIN] error:", e);
@@ -147,10 +130,7 @@ async function loginHandler(req: any, res: any) {
   }
 }
 
-/** POST /api/usuarios/login (principal) */
 router.post("/usuarios/login", loginHandler);
-
-/** POST /api/login (alias retrocompatible) */
 router.post("/login", loginHandler);
 
 export default router;
