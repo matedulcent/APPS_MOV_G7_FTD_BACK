@@ -89,8 +89,11 @@ npm start
 - `GET /api/sucursales/:id` — datos de una sucursal puntual
 - `GET /api/sucursales/:id/oferta` — envases y sabores que ofrece una sucursal
 - `PUT /api/sucursales/:id/oferta` — actualizar la oferta de una sucursal
-- `GET /api/envases` / `GET /api/sabores` — catálogos generales
-- `POST /api/envases` / `POST /api/sabores` — crear un envase o sabor nuevo en el catálogo global
+- `GET /api/envases` / `GET /api/sabores` — catálogos generales (cada item trae su `categoria`)
+- `POST /api/envases` / `POST /api/sabores` — crear un envase o sabor nuevo en el catálogo global (acepta `categoria`, por defecto "Especiales")
+- `GET /api/envases/categorias` / `GET /api/sabores/categorias` — secciones gestionables (p. ej. "Conos", "Cremas")
+- `POST /api/envases/categorias` / `POST /api/sabores/categorias` — crear una sección nueva (vacía), body `{ nombre }`
+- `DELETE /api/envases/categorias/:nombre` / `DELETE /api/sabores/categorias/:nombre` — borrar una sección (los items pasan a "Especiales"; esa sección no se puede borrar)
 - `GET /api/ordenes` (acepta `?sucursalId=`) / `GET /api/ordenes/sucursal/:id` — listado de órdenes, general o filtrado por sucursal
 - `GET /api/ordenes/:id` — detalle de una orden
 - `POST /api/ordenes` — crear una orden

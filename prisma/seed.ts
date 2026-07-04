@@ -9,6 +9,16 @@ async function main() {
   await prisma.sabor.deleteMany({});
   await prisma.sucursal.deleteMany({});
   await prisma.usuario.deleteMany({});
+  await prisma.categoriaEnvase.deleteMany({});
+  await prisma.categoriaSabor.deleteMany({});
+
+  // === SECCIONES (categorías gestionables desde el panel de vendedor) ===
+  await prisma.categoriaEnvase.createMany({
+    data: ["Conos", "Kilo", "Vasos", "Especiales"].map((nombre) => ({ nombre })),
+  });
+  await prisma.categoriaSabor.createMany({
+    data: ["Cremas", "Frutales", "Dulce de leche", "Chocolates", "Especiales"].map((nombre) => ({ nombre })),
+  });
 
   // 2) Insertar datos base
 
@@ -35,43 +45,43 @@ async function main() {
   // === ENVASES ===
   await prisma.envase.createMany({
     data: [
-      { id: "B1",  tipoEnvase: "Cucurucho_1", maxCantSabores: 1 },
-      { id: "B2",  tipoEnvase: "Cucurucho_2", maxCantSabores: 2 },
-      { id: "B3",  tipoEnvase: "Cucurucho_3", maxCantSabores: 3 },
-      { id: "B4",  tipoEnvase: "Cucurucho_4", maxCantSabores: 4 },
-      { id: "B5",  tipoEnvase: "Kilo_0.5",    maxCantSabores: 4 },
-      { id: "B6",  tipoEnvase: "Kilo_0.25",   maxCantSabores: 2 },
-      { id: "B7",  tipoEnvase: "Kilo_1",      maxCantSabores: 4 },
-      { id: "B8",  tipoEnvase: "Vaso_1",      maxCantSabores: 1 },
-      { id: "B9",  tipoEnvase: "Vaso_2",      maxCantSabores: 2 },
-      { id: "B10", tipoEnvase: "Vaso_3",      maxCantSabores: 3 },
-      { id: "B11", tipoEnvase: "Vaso_4",      maxCantSabores: 4 },
+      { id: "B1",  tipoEnvase: "Cucurucho_1", maxCantSabores: 1, categoria: "Conos" },
+      { id: "B2",  tipoEnvase: "Cucurucho_2", maxCantSabores: 2, categoria: "Conos" },
+      { id: "B3",  tipoEnvase: "Cucurucho_3", maxCantSabores: 3, categoria: "Conos" },
+      { id: "B4",  tipoEnvase: "Cucurucho_4", maxCantSabores: 4, categoria: "Conos" },
+      { id: "B5",  tipoEnvase: "Kilo_0.5",    maxCantSabores: 4, categoria: "Kilo" },
+      { id: "B6",  tipoEnvase: "Kilo_0.25",   maxCantSabores: 2, categoria: "Kilo" },
+      { id: "B7",  tipoEnvase: "Kilo_1",      maxCantSabores: 4, categoria: "Kilo" },
+      { id: "B8",  tipoEnvase: "Vaso_1",      maxCantSabores: 1, categoria: "Vasos" },
+      { id: "B9",  tipoEnvase: "Vaso_2",      maxCantSabores: 2, categoria: "Vasos" },
+      { id: "B10", tipoEnvase: "Vaso_3",      maxCantSabores: 3, categoria: "Vasos" },
+      { id: "B11", tipoEnvase: "Vaso_4",      maxCantSabores: 4, categoria: "Vasos" },
     ],
   });
 
   // === SABORES (20 únicos) ===
   await prisma.sabor.createMany({
     data: [
-      { id: "F1",  tipoSabor: "Frutilla" },
-      { id: "F2",  tipoSabor: "Chocolate" },
-      { id: "F3",  tipoSabor: "Choco Blanco" },
-      { id: "F4",  tipoSabor: "Chocolate Amargo" },
-      { id: "F5",  tipoSabor: "Chocolate con Almendras" },
-      { id: "F6",  tipoSabor: "Choco Menta" },
-      { id: "F7",  tipoSabor: "Ron" },
-      { id: "F8",  tipoSabor: "Ron con Pasas" },
-      { id: "F9",  tipoSabor: "Vainilla" },
-      { id: "F10", tipoSabor: "Cacahuate" },
-      { id: "F11", tipoSabor: "Maní" },
-      { id: "F12", tipoSabor: "Pistacho" },
-      { id: "F13", tipoSabor: "Crema Cielo" },
-      { id: "F14", tipoSabor: "Crema" },
-      { id: "F15", tipoSabor: "Yogur" },
-      { id: "F16", tipoSabor: "DDL" },
-      { id: "F17", tipoSabor: "Dulce de Leche" },
-      { id: "F18", tipoSabor: "Caramelo" },
-      { id: "F19", tipoSabor: "Americana" },
-      { id: "F20", tipoSabor: "Crema Americana" },
+      { id: "F1",  tipoSabor: "Frutilla",                categoria: "Frutales" },
+      { id: "F2",  tipoSabor: "Chocolate",                categoria: "Chocolates" },
+      { id: "F3",  tipoSabor: "Choco Blanco",             categoria: "Chocolates" },
+      { id: "F4",  tipoSabor: "Chocolate Amargo",         categoria: "Chocolates" },
+      { id: "F5",  tipoSabor: "Chocolate con Almendras",  categoria: "Chocolates" },
+      { id: "F6",  tipoSabor: "Choco Menta",              categoria: "Chocolates" },
+      { id: "F7",  tipoSabor: "Ron",                      categoria: "Especiales" },
+      { id: "F8",  tipoSabor: "Ron con Pasas",             categoria: "Especiales" },
+      { id: "F9",  tipoSabor: "Vainilla",                 categoria: "Cremas" },
+      { id: "F10", tipoSabor: "Cacahuate",                categoria: "Especiales" },
+      { id: "F11", tipoSabor: "Maní",                     categoria: "Especiales" },
+      { id: "F12", tipoSabor: "Pistacho",                 categoria: "Especiales" },
+      { id: "F13", tipoSabor: "Crema Cielo",               categoria: "Cremas" },
+      { id: "F14", tipoSabor: "Crema",                    categoria: "Cremas" },
+      { id: "F15", tipoSabor: "Yogur",                    categoria: "Cremas" },
+      { id: "F16", tipoSabor: "DDL",                      categoria: "Dulce de leche" },
+      { id: "F17", tipoSabor: "Dulce de Leche",           categoria: "Dulce de leche" },
+      { id: "F18", tipoSabor: "Caramelo",                 categoria: "Especiales" },
+      { id: "F19", tipoSabor: "Americana",                categoria: "Cremas" },
+      { id: "F20", tipoSabor: "Crema Americana",           categoria: "Cremas" },
     ],
   });
 

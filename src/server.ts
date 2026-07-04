@@ -20,8 +20,8 @@ import cors from "cors";
 import usuariosRouter   from "./routes/usuarios";
 import sucursalesRouter, { getSucursalById } from "./routes/sucursales";
 import ordenesRouter    from "./routes/ordenes";
-import envasesRouter    from "./routes/envases";
-import saboresRouter    from "./routes/sabores";
+import envasesRouter, { deleteEnvaseHandler } from "./routes/envases";
+import saboresRouter, { deleteSaborHandler } from "./routes/sabores";
 
 const app = express();
 
@@ -38,7 +38,9 @@ app.use("/api/usuarios",   usuariosRouter);
 app.use("/api/sucursales", sucursalesRouter);
 app.get("/api/sucursales/:id", getSucursalById); // ruta explícita: ver comentario en routes/sucursales.ts
 app.use("/api/envases",    envasesRouter);
+app.delete("/api/envases/:id", deleteEnvaseHandler); // ruta explícita: ver comentario en routes/envases.ts
 app.use("/api/sabores",    saboresRouter);
+app.delete("/api/sabores/:id", deleteSaborHandler); // ruta explícita: ver comentario en routes/sabores.ts
 
 /** ---- Compatibilidad legacy (/api) para lo viejo ----
  * OJO: NO montamos ordenes acá para no romper /api/ordenes.

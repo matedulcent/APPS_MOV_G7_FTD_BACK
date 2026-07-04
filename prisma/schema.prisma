@@ -45,6 +45,7 @@ model Envase {
   id             String            @id @map("ID_Envase")
   tipoEnvase     String            @unique
   maxCantSabores Int
+  categoria      String            @default("Especiales")
   contenidos     ContenidoPedido[]
 
   // backref M:N con sucursal
@@ -54,10 +55,24 @@ model Envase {
 model Sabor {
   id         String            @id @map("ID_SABOR")
   tipoSabor  String            @unique
+  categoria  String            @default("Especiales")
   contenidos ContenidoPedido[]
 
   // backref M:N con sucursal
   sucursales Sucursal[]
+}
+
+// Listado de secciones/categorías gestionables desde el panel de vendedor.
+// Son independientes de los items: permiten crear una sección vacía y
+// borrarla, en vez de inferir la lista únicamente de lo que ya existe.
+model CategoriaEnvase {
+  id     String @id @default(uuid())
+  nombre String @unique
+}
+
+model CategoriaSabor {
+  id     String @id @default(uuid())
+  nombre String @unique
 }
 
 model ContenidoPedido {
