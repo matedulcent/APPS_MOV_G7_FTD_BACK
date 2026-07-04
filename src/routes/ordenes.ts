@@ -1,9 +1,25 @@
 import { Router } from "express";
 import prisma from "../prismaClient";
 import type { Prisma } from "@prisma/client";
-import { randomBytes } from "crypto";
 
 const router = Router();
+
+/** Próximo ID legible tipo "P104", continuando la numeración de los pedidos existentes. */
+async function nextOrdenId(tx: Prisma.TransactionClient): Promise<string> {
+  const rows = await tx.orden.findMany({
+    where: { id: { startsWith: "P" } },
+    select: { id: true },
+  });
+  let max = 99;
+  for (const { id } of rows) {
+    const m = /^P(\d+)$/.exec(id);
+    if (m) {
+      const n = Number(m[1]);
+      if (n > max) max = n;
+    }
+  }
+  return `P${max + 1}`;
+}
 
 /** POST /api/ordenes */
 router.post("/", async (req, res) => {
@@ -25,10 +41,10 @@ router.post("/", async (req, res) => {
       return { envaseId, saborId };
     });
 
-    // Generamos ID (tu modelo no tiene default)
-    const newId = `P_${randomBytes(4).toString("hex")}`;
-
     const nueva = await prisma.$transaction(async (tx) => {
+      // Generamos ID legible dentro de la transacción (tu modelo no tiene default)
+      const newId = await nextOrdenId(tx);
+
       // 1) Crear la orden con FK crudos (UncheckedCreateInput)
       const ordenData: Prisma.OrdenUncheckedCreateInput = {
         id: newId,
@@ -100,7 +116,9 @@ router.patch("/:id/terminar", async (req, res) => {
 });
 
 /** GET /api/ordenes/sucursal/:id
- * Órdenes de una sucursal puntual (usado por el panel de vendedor).
+ * Órdenes de una sucursal puntual, con contenidos incluidos (usado por el panel
+ * de vendedor). Devolver el detalle completo acá evita que el front tenga que
+ * pedir cada orden por separado (era un fetch extra por pedido, en cada refresh).
  */
 router.get("/sucursal/:id", async (req, res) => {
   try {
@@ -110,7 +128,7 @@ router.get("/sucursal/:id", async (req, res) => {
       where: { sucursalId: id },
       take,
       orderBy: [{ fecha: "desc" }, { id: "desc" }],
-      select: { id: true, fecha: true, estadoTerminado: true, sucursalId: true, usuarioId: true },
+      include: { contenidos: { include: { envase: true, sabor: true } } },
     });
     res.json(ordenes);
   } catch (e: any) {
@@ -119,14 +137,19 @@ router.get("/sucursal/:id", async (req, res) => {
 });
 
 /** GET /api/ordenes
- * Acepta ?sucursalId= para filtrar (usado como fallback por el panel de vendedor).
+ * Acepta ?sucursalId= y/o ?usuarioId= para filtrar (usado como fallback por el
+ * panel de vendedor, y por el historial del cliente para no traer los pedidos
+ * de todo el mundo).
  */
 router.get("/", async (req, res) => {
   try {
     const take = Number(req.query.take ?? 50);
-    const { sucursalId } = req.query as { sucursalId?: string };
+    const { sucursalId, usuarioId } = req.query as { sucursalId?: string; usuarioId?: string };
+    const where: Prisma.OrdenWhereInput = {};
+    if (sucursalId) where.sucursalId = sucursalId;
+    if (usuarioId) where.usuarioId = usuarioId;
     const ordenes = await prisma.orden.findMany({
-      where: sucursalId ? { sucursalId } : undefined,
+      where,
       take,
       orderBy: [{ fecha: "desc" }, { id: "desc" }],
       select: { id: true, fecha: true, estadoTerminado: true, sucursalId: true, usuarioId: true },
