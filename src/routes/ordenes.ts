@@ -99,11 +99,34 @@ router.patch("/:id/terminar", async (req, res) => {
   }
 });
 
-/** GET /api/ordenes */
+/** GET /api/ordenes/sucursal/:id
+ * Órdenes de una sucursal puntual (usado por el panel de vendedor).
+ */
+router.get("/sucursal/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const take = Number(req.query.take ?? 50);
+    const ordenes = await prisma.orden.findMany({
+      where: { sucursalId: id },
+      take,
+      orderBy: [{ fecha: "desc" }, { id: "desc" }],
+      select: { id: true, fecha: true, estadoTerminado: true, sucursalId: true, usuarioId: true },
+    });
+    res.json(ordenes);
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message ?? "Error listando órdenes de la sucursal" });
+  }
+});
+
+/** GET /api/ordenes
+ * Acepta ?sucursalId= para filtrar (usado como fallback por el panel de vendedor).
+ */
 router.get("/", async (req, res) => {
   try {
     const take = Number(req.query.take ?? 50);
+    const { sucursalId } = req.query as { sucursalId?: string };
     const ordenes = await prisma.orden.findMany({
+      where: sucursalId ? { sucursalId } : undefined,
       take,
       orderBy: [{ fecha: "desc" }, { id: "desc" }],
       select: { id: true, fecha: true, estadoTerminado: true, sucursalId: true, usuarioId: true },

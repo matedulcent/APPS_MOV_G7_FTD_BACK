@@ -52,6 +52,16 @@ Levanta en `http://localhost:3001` con recarga automática (nodemon). Probar con
 curl http://localhost:3001/api/health
 ```
 
+## Ver/editar los datos en vivo (Prisma Studio)
+
+Para inspeccionar la base mientras la app está en uso (útil para diagnosticar qué se está guardando):
+
+```bash
+npx prisma studio
+```
+
+Abre `http://localhost:5555`, con una grilla editable por tabla (Usuario, Sucursal, Orden, Envase, Sabor, ContenidoPedido). Podés dejarlo corriendo en otra terminal mientras usás la app normalmente.
+
 ## Build de producción
 
 ```bash
@@ -71,14 +81,18 @@ npm start
 ## Endpoints principales
 
 - `GET /api/health` — healthcheck
-- `POST /api/login` / `POST /api/usuarios/login` — login de cliente o sucursal
+- `POST /api/login` / `POST /api/usuarios/login` — login de cliente
+- `POST /api/sucursales/login` — login de vendedor (sucursal)
 - `POST /api/usuarios/registro` — registro de cliente
 - `POST /api/sucursales/registro` — registro de sucursal
 - `GET /api/sucursales` — listado de sucursales
-- `GET /api/sucursales/sucursales/:id/oferta` — envases y sabores que ofrece una sucursal
-- `PUT /api/sucursales/sucursales/:id/oferta` — actualizar la oferta de una sucursal
+- `GET /api/sucursales/:id` — datos de una sucursal puntual
+- `GET /api/sucursales/:id/oferta` — envases y sabores que ofrece una sucursal
+- `PUT /api/sucursales/:id/oferta` — actualizar la oferta de una sucursal
 - `GET /api/envases` / `GET /api/sabores` — catálogos generales
-- `GET /api/ordenes` / `GET /api/ordenes/:id` — listado y detalle de órdenes
+- `POST /api/envases` / `POST /api/sabores` — crear un envase o sabor nuevo en el catálogo global
+- `GET /api/ordenes` (acepta `?sucursalId=`) / `GET /api/ordenes/sucursal/:id` — listado de órdenes, general o filtrado por sucursal
+- `GET /api/ordenes/:id` — detalle de una orden
 - `POST /api/ordenes` — crear una orden
 - `PATCH /api/ordenes/:id/terminar` — marcar una orden como terminada
 

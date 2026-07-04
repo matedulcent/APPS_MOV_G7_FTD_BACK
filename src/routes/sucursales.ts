@@ -1,8 +1,15 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import prisma from "../prismaClient";
 import crypto from "crypto";
+import { loginHandler } from "./usuarios";
 
 const router = Router();
+
+/** POST /api/sucursales/login
+ * El front llama a este endpoint cuando el rol elegido es "vendedor".
+ * Reutiliza el mismo handler que ya sabe distinguir Usuario vs Sucursal.
+ */
+router.post("/login", loginHandler);
 
 /** GET /api/sucursales/:id/oferta
  * Devuelve envases + sabores ofrecidos por esa sucursal
@@ -179,5 +186,27 @@ router.put("/sucursales/:id/oferta", async (req, res) => {
     res.status(500).json({ error: "Error de servidor" });
   }
 });
+
+/** GET /api/sucursales/:id
+ * Datos básicos de una sucursal puntual (usado por el panel de vendedor).
+ * Se registra en server.ts con la ruta completa en vez de acá adentro
+ * (`router.get("/:id", ...)`), porque este router también está montado
+ * en el prefijo genérico "/api" por compatibilidad legacy: un "/:id" ahí
+ * atraparía cualquier ruta de un solo segmento (/api/envases, /api/ordenes, etc.).
+ */
+export async function getSucursalById(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const sucursal = await prisma.sucursal.findUnique({
+      where: { id },
+      select: { id: true, nombre: true, domicilio: true, urlImagen: true },
+    });
+    if (!sucursal) return res.status(404).json({ error: "Sucursal no encontrada" });
+    res.json(sucursal);
+  } catch (e) {
+    console.error("[GET /api/sucursales/:id]", e);
+    res.status(500).json({ error: "Error de servidor" });
+  }
+}
 
 export default router;

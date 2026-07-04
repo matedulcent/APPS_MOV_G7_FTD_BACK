@@ -72,7 +72,7 @@ router.get("/usuarios", async (_req, res) => {
 });
 
 /** Handler de login compartido (usuario o sucursal) */
-async function loginHandler(req: any, res: any) {
+export async function loginHandler(req: any, res: any) {
   try {
     const { email, password, role } = (req.body ?? {}) as {
       email?: string;

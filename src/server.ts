@@ -18,7 +18,7 @@ import cors from "cors";
 
 
 import usuariosRouter   from "./routes/usuarios";
-import sucursalesRouter from "./routes/sucursales";
+import sucursalesRouter, { getSucursalById } from "./routes/sucursales";
 import ordenesRouter    from "./routes/ordenes";
 import envasesRouter    from "./routes/envases";
 import saboresRouter    from "./routes/sabores";
@@ -36,6 +36,7 @@ app.get("/api/health", (_req, res) => {
 /** ---- Nuevos prefijos claros ---- */
 app.use("/api/usuarios",   usuariosRouter);
 app.use("/api/sucursales", sucursalesRouter);
+app.get("/api/sucursales/:id", getSucursalById); // ruta explícita: ver comentario en routes/sucursales.ts
 app.use("/api/envases",    envasesRouter);
 app.use("/api/sabores",    saboresRouter);
 
