@@ -30,6 +30,10 @@ const isHttpUrl = (s?: string) => {
   }
 };
 
+// La imagen puede ser una URL absoluta (vieja, pegada a mano) o la ruta
+// relativa que devuelve POST /api/upload (ej: "/uploads/xxx.jpg").
+const isValidImagenRef = (s?: string) => isHttpUrl(s) || (!!s && s.startsWith("/uploads/"));
+
 // ─── REGISTRO DE SUCURSAL ─────────────────────────────────────────────────────
 // POST /api/sucursales/registro
 // Body desde el front:
@@ -65,8 +69,8 @@ router.post("/registro", async (req, res) => {
     if (nombre && nombre.trim().length < 2) {
       return res.status(400).send("El nombre debe tener al menos 2 caracteres");
     }
-    if (urlImagen && !isHttpUrl(urlImagen)) {
-      return res.status(400).send("La URL de imagen debe empezar con http(s)://");
+    if (urlImagen && !isValidImagenRef(urlImagen)) {
+      return res.status(400).send("La imagen no es válida");
     }
     if (domicilio && domicilio.trim().length < 3) {
       return res.status(400).send("El domicilio debe tener al menos 3 caracteres");

@@ -22,12 +22,16 @@ import sucursalesRouter, { getSucursalById } from "./routes/sucursales";
 import ordenesRouter    from "./routes/ordenes";
 import envasesRouter, { deleteEnvaseHandler } from "./routes/envases";
 import saboresRouter, { deleteSaborHandler } from "./routes/sabores";
+import uploadRouter, { uploadsDir } from "./routes/upload";
 
 const app = express();
 
 app.use(cors({ origin: true }));
 app.options(/.*/, cors({ origin: true }));
 app.use(express.json());
+
+// Imágenes subidas (p.ej. foto de la sucursal) servidas como archivos estáticos
+app.use("/uploads", express.static(uploadsDir));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, tag: "compat-apis", ts: new Date().toISOString() });
@@ -41,6 +45,7 @@ app.use("/api/envases",    envasesRouter);
 app.delete("/api/envases/:id", deleteEnvaseHandler); // ruta explícita: ver comentario en routes/envases.ts
 app.use("/api/sabores",    saboresRouter);
 app.delete("/api/sabores/:id", deleteSaborHandler); // ruta explícita: ver comentario en routes/sabores.ts
+app.use("/api",            uploadRouter);
 
 /** ---- Compatibilidad legacy (/api) para lo viejo ----
  * OJO: NO montamos ordenes acá para no romper /api/ordenes.
