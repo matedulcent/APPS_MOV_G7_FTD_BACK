@@ -33,12 +33,17 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "items debe ser un array no vacío" });
     }
 
-    // Normalizamos items a FKs crudos
-    const contenidosData: { envaseId: string; saborId: string }[] = items.map((it: any, idx: number) => {
+    // Normalizamos items a FKs crudos.
+    // 'grupo' identifica a qué envase físico del pedido pertenece cada sabor
+    // (dos kilos con gustos distintos en el mismo pedido no deben mezclarse).
+    // Si el cliente no lo manda (payload viejo), cada item queda en su propio
+    // grupo: es el comportamiento previo, no lo empeora.
+    const contenidosData: { envaseId: string; saborId: string; grupo: number }[] = items.map((it: any, idx: number) => {
       const envaseId = it?.envaseId ?? it?.envase?.id;
       const saborId  = it?.saborId  ?? it?.sabor?.id;
+      const grupo = Number.isInteger(it?.grupo) ? it.grupo : idx;
       if (!envaseId || !saborId) throw new Error(`Item #${idx + 1}: envaseId y saborId requeridos`);
-      return { envaseId, saborId };
+      return { envaseId, saborId, grupo };
     });
 
     const nueva = await prisma.$transaction(async (tx) => {
@@ -70,6 +75,7 @@ router.post("/", async (req, res) => {
               // Prisma setea ordenId automáticamente por la relación
               envaseId: c.envaseId,
               saborId: c.saborId,
+              grupo: c.grupo,
             })),
           },
         },

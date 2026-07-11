@@ -96,10 +96,11 @@ npm start
 - `DELETE /api/envases/categorias/:nombre` / `DELETE /api/sabores/categorias/:nombre` — borrar una sección (los items pasan a "Especiales"; esa sección no se puede borrar)
 - `GET /api/ordenes` (acepta `?sucursalId=`) / `GET /api/ordenes/sucursal/:id` — listado de órdenes, general o filtrado por sucursal
 - `GET /api/ordenes/:id` — detalle de una orden
-- `POST /api/ordenes` — crear una orden
+- `POST /api/ordenes` — crear una orden. Body: `{ usuarioId, sucursalId, items: [{ envaseId, saborId, grupo }] }`. `grupo` identifica a qué envase físico del pedido pertenece cada sabor (por ejemplo, dos kilos con gustos distintos en el mismo pedido usan `grupo` 0 y 1 respectivamente) — sin esto, el panel de la sucursal no puede distinguir qué gustos van juntos en cada envase. Si no se manda, cada item queda en su propio grupo (comportamiento previo).
 - `PATCH /api/ordenes/:id/terminar` — marcar una orden como terminada
 
 ## Notas
 
 - La conexión a la base es SQLite local (`prisma/dev.db`), no hay servidor de base de datos externo que levantar.
+- `ContenidoPedido.grupo` (agregado en la migración `add_contenido_pedido_grupo`) agrupa los sabores por envase físico dentro de un mismo pedido. El front arma este número recorriendo los envases seleccionados en `Detalle_Pedido.tsx`; el panel de vendedor y el historial del cliente lo usan (vía `app/services/agruparContenidos.ts`) para mostrar cada envase como una tarjeta separada con un color propio, en vez de una lista plana de sabores.
 - Si el frontend (Expo) no puede conectarse, revisar que la IP configurada en `app/services/apiConfig.ts` del front apunte a la IP de esta máquina en la red local, y que el puerto sea `3001`.

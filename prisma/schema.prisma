@@ -80,6 +80,10 @@ model ContenidoPedido {
   ordenId  String
   envaseId String
   saborId  String
+  // Distingue a qué envase físico del pedido pertenece este sabor (p. ej. dos
+  // kilos en el mismo pedido con gustos distintos no deben mezclarse). Único
+  // por (ordenId, grupo) en la práctica; sin FK propia, lo arma el back al crear la orden.
+  grupo    Int    @default(0)
 
   orden  Orden  @relation(fields: [ordenId], references: [id], onDelete: Cascade)
   envase Envase @relation(fields: [envaseId], references: [id], onDelete: Cascade)
